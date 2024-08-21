@@ -99,15 +99,15 @@ FTmax(h) Fuerza de trabajo maxima de trabajadores con habilidad h
      
 
 
-HN(t) Horas máximas de tiempo normal en el trimestre t
-    /t1=208
-     t2=208
-     t3=208/
+HRmax(t) Horas máximas de tiempo normal en el trimestre t
+    /t1=624
+     t2=624
+     t3=624/
      
 HEmax(t) Horas máximas de tiempo extra en el trimestre t
-    /t1=78
-     t2=78
-     t3=78/
+    /t1=234
+     t2=234
+     t3=234/
 ;
 
 
@@ -120,7 +120,7 @@ TABLE
 D(i,t) Demanda de producto terminado i en el trimestre t
         t1          t2          t3          t4
 i1      15296181    20343160    23206355    13824774    
-i2       7812561    10169900     1249179     7854910
+i2       7812561    10169900    12419179     7854910
 i3       2452971     3271535     3320635     2036530
 ;
 
@@ -136,8 +136,8 @@ TABLE
 CP(i,t) Costo de producir una botella de i en el trimestre t
         t1      t2      t3      t4
 i1      46.91   47.79   48.75   49.78
-i2      46.91   47.79   78.75   49.78
-i3      46.91   47.79   78.75   49.78
+i2      46.91   47.79   48.75   49.78
+i3      46.91   47.79   48.75   49.78
 ;
 
 
@@ -258,8 +258,10 @@ LS(i,t) Limite maximo de botellas de producto i a subcontratar en el trimestre t
         t1          t2          t3          t4
 i1      1835542     2441179     2031216     1369777
 i2       937507     1220388     1070518      716130
-i3       294356     392584       332486      220346
+i3       294356      392584      332486      220346
 ;
+
+
 
 TABLE
 HPH(h,i) Horas productivas del trabajador de habilidad h necesarias para una unidad de i
@@ -270,12 +272,11 @@ h3      0.00055     0.00055     0.00055
 ;
 
 
-
-
 *VARIABLES DE DECISIÓN
 INTEGER VARIABLES
 
-X(i,t)      Cantidad de botellas de producto i producido en el trimestre t
+XR(i,t)     Cantidad de botellas de i producidas en el tiempo regular del trimestre t
+XE(i,t)     Cantidad de botellas de i producido en el tiempo extra del trimestre t
 IX(i,t)     Cantidad de inventario de botellas de i al final del trimestre t
 B(i,t)      Cantidad de faltantes (backorder) de botellas de i en el trimestre t
 SX(i,t)     Cantidad de botellas de producto i a subcontratar en el trimestre t
@@ -285,10 +286,20 @@ IM(k,t)     Cantidad de materia prima K en inventario al final del trimestre t
 
 TC(h,t)     Cantidad de trabajadores de habilidad h a CONTRATAR en el trimestre t
 TD(h,t)     Cantidad de trabajadores de habilidad h a DESPEDIR  en el trimestre t
-TU(h,t)     Cantidad de trabajadores de habilidad h a UTILIZAR  en el trimestre t
+TUR(h,t)    Cantidad de trabajadores de habilidad h a UTILIZAR en tiempo regular en el trimestre t
+TUE(h,t)    Cantidad de trabajadores de habilidad h a UTILIZAR en tiempoe extra en el trimestre t
 
-HE(h,t)     Cantidad de HORAS EXTRA a usar de los trabajadores de habilidad h en el trimestre t
+
 ;
+
+
+
+POSITIVE VARIABLES
+HRP(h,t)    Cantidad de HORAS REGULARES productivas de los trabajadores de habilidad h en el trimestre t
+HRO(h,t)    Cantidad de HORAS REGULARES ociosas de los trabajadores de habilidad h en el trimestre t
+HE(h,t)     Cantidad de HORAS EXTRA totales de los trabajadores de habilidad h en el trimestre t
+HEP(h,t)    Cantidad de HORAS EXTRA productivas de los trabajadores de habilidad h en el trimestre t
+HEO(h,t)    Cantidad de HORAS EXTRA ociosas de los trabajadores de habilidad h en el trimestre t
 
 
 *VARIABLES DE LAS FUNCIONES OBJETIVO
@@ -301,84 +312,126 @@ EmisionHuella       Valor de la función objetivo para huella de carbono
 
 
 EQUATIONS
-FOcostos            Función objetivo para minimizar costos
-FOcomprasPond       Función objetivo para maximizar compras ponderadas
-FOhuellaCarb        Función objetivo para minimizar huella de carbono
-DemaPT(i,t)         Demanda de producto i en cada trimestre t
-DemaMP(k,t)         Demanda de materia prima k en cada trimestre t
-InvIniPT(i)         Balance inicial de inventario de producto terminado i
-InvIniMP(k)         Balance inicial de inventario de materia prima k
-CapacAlmacPT(i,t)   Capacidad maxima de almacenar producto terminado i en el trimestre t
-CapacAlmacMP(k,t)   Capacidad maxima de almacenar materia prima i en el trimestre t
-HEmaximas(h,t)      Horas extra máximas permitidas en el trimestre t
-FuerTrabNece(h,t)   Fuerza de trabajadores necesaria de habilidad h en eltrimestre t    
-BalanTrabaj(h,t)    Balance entre trabajadores de habilidad h utilizados contratados y despedidos     
-TrabInic(h)         Balance entre trabajadores de habilidad h iniciales contratados y despedidos 
-TrabMax(h,t)        Fuerza laboral maxima de trabajadores de habilidad h     
-TrabMin(h,t)        Fuerza laboral minima de trabajadores de habilidad h           
+FOcostos                Función objetivo para minimizar costos
+FOcomprasPond           Función objetivo para maximizar compras ponderadas
+FOhuellaCarb            Función objetivo para minimizar huella de carbono
+
+
+
+DemaPT(i,t)             Demanda de producto i en cada trimestre t
+DemaMP(k,t)             Demanda de materia prima k en cada trimestre t
+InvIniPT(i)             Balance inicial de inventario de producto terminado i
+InvIniMP(k)             Balance inicial de inventario de materia prima k
+CapacAlmacPT(i,t)       Capacidad maxima de almacenar producto terminado i en el trimestre t
+CapacAlmacMP(k,t)       Capacidad maxima de almacenar materia prima i en el trimestre t
+LimSubcon(i,t)          Límite de subcontratación del producto i en el trimestre t
+
+HRmaximas(h,t)          Horas regulares máximas permitidas por habilidad h en el trimestre t
+HEusadas(h,t)           Horas extra usadas por habilidad h en el trimestre t
+HEmaximas(h,t)          Horas extra máximas permitidas por habilidad h en el trimestre t
+FuerTrabNeceReg(h,t)    Fuerza de trabajadores de habilidad h necesaria en el tiempo regular del trimestre t  
+FuerTrabNeceExt(h,t)    Fuerza de trabajadores de habilidad h necesaria en el tiempo extra del trimestre t
+
+LimTrabajExt(h,t)       Condición para evitar que los trabajadores extra superen a los trabajadores regulares
+BalanTrabaj(h,t)        Balance entre trabajadores de habilidad h utilizados contratados y despedidos     
+TrabInic(h)             Balance entre trabajadores de habilidad h iniciales contratados y despedidos 
+TrabMax(h,t)            Fuerza laboral maxima de trabajadores de habilidad h     
+TrabMin(h,t)            Fuerza laboral minima de trabajadores de habilidad h
+
 ;
 
+
+
+
 *FUNCIONES OBJETIVO
-FOcostos..       CostoTotal =E= sum((i,t),CP(i,t)*X(i,t)   + CBOP(i,t)*B(i,t) + CNP(i,t)*IX(i,t))+
-                            sum((h,t),CC(h,t)*TC(h,t)  + CD(h,t)*TC(h,t))  +
-                            sum((h,t),CTR(h,t)*TU(h,t) + CE(h,t)*TU(h,t))  +
-                            sum((k,t),CNK(k,t)*IM(k,t)+ sum(p, CK(k,p,t)*M(k,p,t)))
+FOcostos..       CostoTotal =E= sum((i,t),CP(i,t)  *(XE(i,t) + XR(i,t))
+                                        + CBOP(i,t)* B(i,t)
+                                        + CNP(i,t) * IX(i,t)
+                                        + CS(i,t)  * SX(i,t))  +
+                                        
+                                sum((h,t),CC(h,t)* TC(h,t)
+                                        + CD(h,t)* TD(h,t))  +
+                                        
+                                sum((h,t),CTR(h,t)*(HRP(h,t)+ HRO(h,t))
+                                        + CE(h,t) * HE(h,t))  +
+                                        
+                                sum((k,t),CNK(k,t)*IM(k,t)
+                                        + sum(p, CK(k,p,t)* M(k,p,t)))
 ;
-FOcomprasPond..  PuntajeCompras =E= sum(p,RP(p)*sum((k,t),M(k,p,t)))
+
+FOcomprasPond..  PuntajeCompras =E= sum(p,RP(p)* sum((k,t),M(k,p,t)))
 ;
-FOhuellaCarb..   EmisionHuella  =E= sum(i,GHGP(i) *sum(t,X(i,t)))  +
-                                    sum(i,GHGSB(i)*sum(t,SX(i,t))) +
-                                    sum(k,GHGMP(k)*sum(t,IM(k,t))) +
-                                    sum(i,GHGPT(i)*sum(t,X(i,t)))
+
+FOhuellaCarb..   EmisionHuella  =E= sum(i,GHGP(i) * sum(t,XR(i,t) + XE(i,t))) +
+                                    sum(i,GHGSB(i)* sum(t,SX(i,t))) +
+                                    sum(k,GHGMP(k)* sum(t,IM(k,t))) +
+                                    sum(i,GHGPT(i)* sum(t,XR(i,t) + XE(i,t)))
 ;
+
+
 
 
 
 *RESTRICCIONES
-DemaPT(i,t)$(ord(t) > 1)..          X(i,t) - IX(i,t-1)+ IX(i,t) + SX(i,t)=E= D(i,t) - B(i,t)
+DemaPT(i,t)$(ord(t) > 1)..          XR(i,t)    + XE(i,t)    - IX(i,t-1) + IX(i,t)    + SX(i,t)    =E=  D(i,t)   - B(i,t)
+;
+InvIniPT(i)..                       XR(i,'t1') + XE(i,'t1') - NIPT(i)   + IX(i,'t1') + SX(i,'t1') =E= D(i,'t1') + B(i,'t1')
 ;
 
-DemaMP(k,t)$(ord(t) > 1)..          IM(k,t-1) - sum(i, X(i,t)* TCK(i,k)) + sum(p, M(k,p,t)) =E= IM(k,t) 
+
+DemaMP(k,t)$(ord(t) > 1)..          IM(k,t-1) + sum(p, M(k,p,t))     =E=  sum(i, (XR(i,t)    +  XE(i,t))  * TCK(i,k)) + IM(k,t)
+;
+InvIniMP(k)..                       NMT(k)    + sum(p, M(k,p,'t1'))  =E=  sum(i, (XR(i,'t1') + XE(i,'t1'))* TCK(i,k)) + IM(k,'t1')
 ;
 
-InvIniPT(i)..                       X(i,'t1') + NIPT(i)- IX(i,'t1')  =E= D(i,'t1') + B(i,'t1')
+
+
+CapacAlmacPT(i,t)..                 IX(i,t)  =L= LAP(i)
+;
+CapacAlmacMP(k,t)..                 IM(k,t)  =L= LAK(k)
+;
+LimSubcon(i,t)..                    SX(i,t)  =L= LS(i,t)
 ;
 
-InvIniMP(k)..                       NMT(k) - IM(k,'t1') + sum(p, M(k,p,'t1')) =E= sum(i, X(i,'t1')* TCK(i,k))
+
+HRmaximas(h,t)..                    HRP(h,t) + HRO(h,t) =E= HRmax(t) * TUR(h,t)
+;
+HEmaximas(h,t)..                    HEP(h,t) + HEO(h,t) =E= HE(h,t)
+;
+HEusadas(h,t)..                     HE(h,t)      =L= HEmax(t) * TUR(h,t)
+;
+FuerTrabNeceReg(h,t)..              HRP(h,t)     =E= sum(i, HPH(h,i) * XR(i,t))
+;
+FuerTrabNeceExt(h,t)..              HEP(h,t)     =E= sum(i, HPH(h,i) * XE(i,t))
 ;
 
-CapacAlmacPT(i,t)..                 IX(i,t) =L= LAP(i)
-;
 
-CapacAlmacMP(k,t)..                 IM(k,t) =L= LAK(k)
-;
 
-HEmaximas(h,t)..                    HE(h,t) =L= HEmax(t)
+LimTrabajExt(h,t)..                 TUR(h,t)    =G= TUE(h,t)
 ;
-
-FuerTrabNece(h,t)..                 sum(i,HPH(h,i) * X(i,t)) =L= TU(h,t)* HN(t) + FTmax(h)* HE(h,t)
+BalanTrabaj(h,t)$(ord(t) > 1)..     TUR(h,t)    =E= TC(h,t) - TD(h,t) + TUR(h,t-1)
 ;
-
-BalanTrabaj(h,t)$(ord(t) > 1)..     TU(h,t) =E= TC(h,t) - TD(h,t) + TU(h,t-1)
+TrabInic(h)..                       TUR(h,'t1') =E= TC(h,'t1') - TD(h,'t1') + FTini(h)
 ;
-
-TrabInic(h)..                       TU(h,'t1') =E= TC(h,'t1') - TD(h,'t1') + FTmin(h)
+TrabMax(h,t)..                      TUR(h,t)    =G= FTmin(h)
 ;
-
-TrabMax(h,t)..                      TU(h,t) =G= FTmin(h)
-;
-
-TrabMin(h,t)..                      TU(h,t) =L= FTmax(h)
+TrabMin(h,t)..                      TUR(h,t)    =L= FTmax(h)
 ;
 
 
 
 MODEL Planeacion_Agregada /all/;
 
-*SOLVE Planeacion_Agregada USING mip MINIMIZING CostoTotal;
-*sOLVE Planeacion_Agregada USING mip MAXIMIZING PuntajeCompras;
+SOLVE Planeacion_Agregada USING mip MINIMIZING CostoTotal;
+*SOLVE Planeacion_Agregada USING mip MAXIMIZING PuntajeCompras;
 *SOLVE Planeacion_Agregada USING mip MINIMIZING EmisionHuella;
 
 
 
-DISPLAY X.l, IX.L, B.L, SX.L, M.L, IM.L, TC.L, TD.L, TU.L, HE.L, PuntajeCompras.L, CostoTotal.L, EmisionHuella.L;
+DISPLAY
+XR.L, XE.L, IX.L, B.L, SX.L,
+M.L, IM.L,
+TC.L, TD.L, TUR.L, TUE.L,
+HRP.L, HRO.L, HEP.L, HEO.L,
+
+PuntajeCompras.L, CostoTotal.L, EmisionHuella.L;
