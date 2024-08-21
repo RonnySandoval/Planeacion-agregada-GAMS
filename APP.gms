@@ -372,23 +372,12 @@ TrabMin(h,t)..                      TU(h,t) =L= FTmax(h)
 ;
 
 
-* Paso 1: Minimizar CostoTotal
-MODEL Planeacion_Agregada_Costos /all/;
-SOLVE Planeacion_Agregada_Costos USING mip MINIMIZING CostoTotal;
-Scalar OptimalCostoTotal;
-OptimalCostoTotal = CostoTotal.l;
 
-* Paso 2: Maximizar PuntajeCompras con restricción de costos
-FOcostosRestringido.. CostoTotal =E= OptimalCostoTotal;
-MODEL Planeacion_Agregada_Compras /all/;
-SOLVE Planeacion_Agregada_Compras USING mip MAXIMIZING PuntajeCompras;
-Scalar OptimalPuntajeCompras;
-OptimalPuntajeCompras = PuntajeCompras.l;
+MODEL Planeacion_Agregada /all/;
 
-* Paso 3: Minimizar EmisionHuella con restricciones de costos y compras
-FOcomprasRestringido.. PuntajeCompras =E= OptimalPuntajeCompras;
-MODEL Planeacion_Agregada_Huella /all/;
-SOLVE Planeacion_Agregada_Huella USING mip MINIMIZING EmisionHuella;
+*SOLVE Planeacion_Agregada USING mip MINIMIZING CostoTotal;
+*sOLVE Planeacion_Agregada USING mip MAXIMIZING PuntajeCompras;
+*SOLVE Planeacion_Agregada USING mip MINIMIZING EmisionHuella;
 
 
 
